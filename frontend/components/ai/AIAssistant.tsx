@@ -1,35 +1,35 @@
 import React, { useState } from 'react';
 import { useResumeStore } from '../../store/useResumeStore';
-import { Sparkles, CheckCircle2, AlertTriangle, ChevronRight, Zap, Target } from 'lucide-react';
+import {
+  Sparkles, CheckCircle2, AlertTriangle, ChevronRight,
+  Target, Loader2, Building2, Brain
+} from 'lucide-react';
 import { CoverLetterGenerator } from './CoverLetterGenerator';
+import { InterviewPrep } from './InterviewPrep';
+import { CompanySuggestions } from './CompanySuggestions';
+
+type Tab = 'score' | 'optimize' | 'fresher' | 'cover-letter' | 'interview' | 'companies';
 
 export const AIAssistant: React.FC = () => {
   const {
-    atsAnalysis,
-    isScanning,
-    jobDescription,
-    companyName,
-    targetRole,
-    setJobDescription,
-    setCompanyDetails,
-    triggerAtsScan,
-    experience,
-    updateExperience,
+    atsAnalysis, isScanning,
+    jobDescription, companyName, targetRole,
+    setJobDescription, setCompanyDetails,
+    triggerAtsScan, optimizeResume,
+    experience, updateExperience,
+    generateFromTemplate, isGeneratingQuestions,
   } = useResumeStore();
 
-  const [activeTab, setActiveTab] = useState<'score' | 'optimize' | 'fresher' | 'cover-letter'>('score');
+  const [activeTab, setActiveTab] = useState<Tab>('score');
   const [improvingId, setImprovingId] = useState<string | null>(null);
+  const [isOptimizing, setIsOptimizing] = useState(false);
 
-  // Programmatic mock improvement helper
   const handleEnhanceBullet = async (expId: string) => {
     setImprovingId(expId);
-    
-    // Simulate real backend AI rewrite latency
     setTimeout(() => {
       const exp = experience.find(e => e.id === expId);
       if (exp) {
         let enhancedText = exp.description;
-        // Mocking high-quality ATS friendly bullet points
         if (exp.company.toLowerCase().includes('technovation')) {
           enhancedText = `- Spearheaded Next.js adoption, reducing page load times by 35% and boosting engagement by 18%.\n- Coordinated development of WebSocket modules, decreasing latency by 200ms.\n- Mentored 3 junior developers and established standardized code compliance protocols.`;
         } else {
@@ -41,10 +41,20 @@ export const AIAssistant: React.FC = () => {
     }, 800);
   };
 
+  const handleOptimize = async () => {
+    if (!jobDescription.trim()) return;
+    setIsOptimizing(true);
+    try {
+      await optimizeResume(jobDescription, companyName, targetRole);
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
   const getScoreColor = (score: number) => {
-    if (score >= 85) return 'text-emerald-600 bg-emerald-50 border-emerald-100';
-    if (score >= 70) return 'text-amber-600 bg-amber-50 border-amber-100';
-    return 'text-rose-600 bg-rose-50 border-rose-100';
+    if (score >= 85) return 'text-emerald-600 bg-emerald-50 border-emerald-200';
+    if (score >= 70) return 'text-amber-600 bg-amber-50 border-amber-200';
+    return 'text-rose-600 bg-rose-50 border-rose-200';
   };
 
   const getBarColor = (score: number) => {
@@ -53,123 +63,128 @@ export const AIAssistant: React.FC = () => {
     return 'bg-rose-500';
   };
 
+  const tabs: { id: Tab; label: string }[] = [
+    { id: 'score', label: 'ATS Score' },
+    { id: 'optimize', label: 'Optimizer' },
+    { id: 'fresher', label: 'AI Enhance' },
+    { id: 'cover-letter', label: 'Cover Letter' },
+    { id: 'interview', label: 'Interview' },
+    { id: 'companies', label: 'Companies' },
+  ];
+
   return (
     <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm flex flex-col h-full select-none text-slate-800">
-      {/* Navigation tabs */}
-      <div className="flex border-b border-slate-100 bg-slate-50/50 shrink-0">
-        <button
-          onClick={() => setActiveTab('score')}
-          className={`flex-1 py-3 text-xs font-semibold border-b-2 text-center transition ${
-            activeTab === 'score'
-              ? 'border-indigo-650 text-indigo-650 bg-white'
-              : 'border-transparent text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          ATS Scoring Engine
-        </button>
-        <button
-          onClick={() => setActiveTab('optimize')}
-          className={`flex-1 py-3 text-xs font-semibold border-b-2 text-center transition ${
-            activeTab === 'optimize'
-              ? 'border-indigo-650 text-indigo-650 bg-white'
-              : 'border-transparent text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          Job Optimizer
-        </button>
-        <button
-          onClick={() => setActiveTab('fresher')}
-          className={`flex-1 py-3 text-xs font-semibold border-b-2 text-center transition ${
-            activeTab === 'fresher'
-              ? 'border-indigo-650 text-indigo-650 bg-white'
-              : 'border-transparent text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          Fresher Helper
-        </button>
-        <button
-          onClick={() => setActiveTab('cover-letter')}
-          className={`flex-1 py-3 text-xs font-semibold border-b-2 text-center transition ${
-            activeTab === 'cover-letter'
-              ? 'border-indigo-650 text-indigo-650 bg-white'
-              : 'border-transparent text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          Cover Letter
-        </button>
+      {/* Tab Nav — scrollable */}
+      <div className="flex border-b border-slate-100 bg-slate-50/50 overflow-x-auto scrollbar-none shrink-0">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`shrink-0 px-3 py-2.5 text-[10px] font-bold border-b-2 transition whitespace-nowrap ${
+              activeTab === tab.id
+                ? 'border-indigo-600 text-indigo-700 bg-white'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-white/50'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-5 space-y-4">
-        {/* ATS SCORING ENGINE TAB */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+
+        {/* ── ATS SCORE TAB ── */}
         {activeTab === 'score' && (
           <div className="space-y-4">
-            {/* Score Ring / Block */}
+            {/* Score Ring */}
             <div className="flex items-center gap-4 p-4 border rounded-xl bg-slate-50/30">
-              <div className={`w-16 h-16 rounded-full flex flex-col items-center justify-center border font-bold text-lg shrink-0 ${getScoreColor(atsAnalysis.score)}`}>
-                <span>{isScanning ? '...' : atsAnalysis.score}</span>
-                <span className="text-[9px] uppercase font-bold text-slate-450 tracking-wider">ATS</span>
+              <div className={`w-16 h-16 rounded-full flex flex-col items-center justify-center border-2 font-bold text-lg shrink-0 ${getScoreColor(atsAnalysis.score)}`}>
+                <span>{isScanning ? '—' : atsAnalysis.score}</span>
+                <span className="text-[8px] uppercase font-bold text-slate-400 tracking-wider">ATS</span>
               </div>
               <div>
                 <h4 className="text-xs font-bold text-slate-900">
-                  {atsAnalysis.score >= 80 ? 'ATS Compatibility is Excellent' : 'ATS Compatibility Needs Work'}
+                  {atsAnalysis.score >= 85 ? '🎉 Excellent ATS Compatibility' : atsAnalysis.score >= 70 ? '⚡ Good — Needs Minor Fixes' : '⚠️ ATS Compatibility Needs Work'}
                 </h4>
-                <p className="text-[10.5px] text-slate-550 leading-normal mt-0.5">
-                  Aim for a target compatibility index of 80–95. Adjust keywords and bullet formatting to pass parsers.
+                <p className="text-[10px] text-slate-500 leading-normal mt-0.5">
+                  Target 80–95 for best recruiter visibility.
                 </p>
               </div>
             </div>
 
-            {/* Breakdown metrics */}
+            {/* Metric Bars */}
             <div className="space-y-2.5">
-              <h5 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Parser Dimensions</h5>
-              
-              {/* Metric Row */}
+              <h5 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Parser Breakdown</h5>
               {[
                 { label: 'Formatting & Contacts', val: atsAnalysis.breakdown.formatting },
-                { label: 'Completeness Checklist', val: atsAnalysis.breakdown.completeness },
+                { label: 'Section Completeness', val: atsAnalysis.breakdown.completeness },
                 { label: 'Action Verb Density', val: atsAnalysis.breakdown.actionVerbs },
                 { label: 'Keywords & Skills Match', val: atsAnalysis.breakdown.skillsMatch },
-                { label: 'Target Job Relevance', val: atsAnalysis.breakdown.jobRelevance },
+                { label: 'Job Relevance', val: atsAnalysis.breakdown.jobRelevance },
               ].map((m, idx) => (
                 <div key={idx} className="space-y-1">
-                  <div className="flex justify-between text-[11px] font-semibold">
+                  <div className="flex justify-between text-[10px] font-semibold">
                     <span className="text-slate-600">{m.label}</span>
                     <span className="text-slate-800">{m.val}%</span>
                   </div>
                   <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                    <div className={`h-full transition-all duration-500 ${getBarColor(m.val)}`} style={{ width: `${m.val}%` }}></div>
+                    <div className={`h-full transition-all duration-500 rounded-full ${getBarColor(m.val)}`} style={{ width: `${m.val}%` }} />
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Critical Improvements */}
+            {/* Critical Actions */}
             {atsAnalysis.suggestions.critical.length > 0 && (
-              <div className="space-y-2 pt-2">
-                <h5 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                  <AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Action Items to Improve Score
+              <div className="space-y-2 pt-1">
+                <h5 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3 text-amber-500" /> Action Items
                 </h5>
                 <div className="space-y-1.5">
                   {atsAnalysis.suggestions.critical.map((s, idx) => (
-                    <div key={idx} className="flex gap-2 text-[10.5px] text-slate-650 leading-relaxed items-start">
-                      <ChevronRight className="w-3.5 h-3.5 text-indigo-500 shrink-0 mt-0.5" />
+                    <div key={idx} className="flex gap-2 text-[10px] text-slate-600 leading-relaxed items-start bg-amber-50/50 border border-amber-100 rounded-lg p-2">
+                      <ChevronRight className="w-3 h-3 text-amber-500 shrink-0 mt-0.5" />
                       <span>{s}</span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
+
+            {/* Missing Skills */}
+            {atsAnalysis.suggestions.skills.length > 0 && (
+              <div className="space-y-2">
+                <h5 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Missing Keywords</h5>
+                <div className="flex flex-wrap gap-1.5">
+                  {atsAnalysis.suggestions.skills.map((skill, idx) => (
+                    <span key={idx} className="text-[9.5px] bg-indigo-50 border border-indigo-100 text-indigo-700 px-2 py-0.5 rounded-md font-bold">
+                      + {skill}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Re-scan Button */}
+            <button
+              onClick={triggerAtsScan}
+              disabled={isScanning}
+              className="w-full py-2 bg-slate-800 hover:bg-slate-900 disabled:opacity-60 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5"
+            >
+              {isScanning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+              {isScanning ? 'Scanning...' : 'Re-scan ATS'}
+            </button>
           </div>
         )}
 
-        {/* JOB OPTIMIZER TAB */}
+        {/* ── JOB OPTIMIZER TAB ── */}
         {activeTab === 'optimize' && (
           <div className="space-y-4">
             <div className="space-y-3">
-              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-widest">Recruiter Alignment</h4>
-              <div className="grid grid-cols-2 gap-3">
+              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-widest">Recruiter Alignment Engine</h4>
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Company Name</label>
+                  <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Company</label>
                   <input
                     type="text"
                     value={companyName}
@@ -179,47 +194,55 @@ export const AIAssistant: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Target Title</label>
+                  <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Target Role</label>
                   <input
                     type="text"
                     value={targetRole}
                     onChange={(e) => setCompanyDetails(companyName, e.target.value)}
-                    placeholder="e.g. Senior Frontend Dev"
+                    placeholder="e.g. SDE II"
                     className="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-indigo-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Paste Job Description</label>
+                <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Job Description</label>
                 <textarea
-                  rows={4}
+                  rows={5}
                   value={jobDescription}
                   onChange={(e) => setJobDescription(e.target.value)}
-                  placeholder="Paste the job description keywords to analyze skills gaps and run optimization..."
-                  className="w-full border border-slate-200 rounded-lg p-2.5 text-xs focus:outline-none focus:border-indigo-500 resize-none font-sans"
+                  placeholder="Paste the full job description here. AI will extract ATS keywords and rewrite your resume to match..."
+                  className="w-full border border-slate-200 rounded-lg p-2.5 text-xs focus:outline-none focus:border-indigo-500 resize-none"
                 />
               </div>
 
-              <button
-                onClick={triggerAtsScan}
-                className="w-full py-2 bg-indigo-650 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5"
-              >
-                <Target className="w-3.5 h-3.5" /> Analyze Keyword Gaps
-              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={triggerAtsScan}
+                  disabled={isScanning}
+                  className="py-2 bg-slate-100 hover:bg-slate-200 disabled:opacity-60 text-slate-800 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5"
+                >
+                  <Target className="w-3.5 h-3.5" />
+                  Analyze Gaps
+                </button>
+                <button
+                  onClick={handleOptimize}
+                  disabled={isOptimizing || !jobDescription.trim()}
+                  className="py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5"
+                >
+                  {isOptimizing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                  {isOptimizing ? 'Optimizing...' : 'AI Optimize'}
+                </button>
+              </div>
             </div>
 
-            {/* Keyword / Skill Suggestions */}
             {atsAnalysis.suggestions.skills.length > 0 && (
               <div className="space-y-2 border-t border-slate-100 pt-3">
-                <h5 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Suggested Missing Keywords</h5>
+                <h5 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Suggested Missing Keywords</h5>
                 <div className="flex flex-wrap gap-1.5">
                   {atsAnalysis.suggestions.skills.map((skill, idx) => (
-                    <span
-                      key={idx}
-                      className="text-[9.5px] bg-slate-50 border border-slate-200 text-indigo-700 px-2 py-0.5 rounded font-semibold"
-                    >
-                      +{skill}
+                    <span key={idx} className="text-[9.5px] bg-indigo-50 border border-indigo-100 text-indigo-700 px-2 py-0.5 rounded-md font-bold">
+                      + {skill}
                     </span>
                   ))}
                 </div>
@@ -228,40 +251,38 @@ export const AIAssistant: React.FC = () => {
           </div>
         )}
 
-        {/* FRESHER AI HELPER TAB */}
+        {/* ── AI ENHANCE (FRESHER) TAB ── */}
         {activeTab === 'fresher' && (
           <div className="space-y-4">
-            <div className="space-y-1">
-              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-widest flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5 text-indigo-600" /> Professional Enhancer
-              </h4>
-              <p className="text-[10.5px] text-slate-550 leading-normal">
-                No corporate experience? Select active experiences and let AI rewrite achievements with metrics, strong action verbs, and impact targets.
+            <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3.5">
+              <div className="flex items-center gap-2 mb-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                <h4 className="text-xs font-bold text-indigo-900">AI Bullet Enhancer</h4>
+              </div>
+              <p className="text-[10px] text-indigo-700 leading-relaxed">
+                Select any experience role to rewrite bullet points with strong action verbs, quantified metrics, and ATS-optimized phrasing.
               </p>
             </div>
 
             {experience.length === 0 ? (
-              <p className="text-xs text-slate-400 italic">No experiences added. Add experience items under the Work tab first.</p>
+              <p className="text-xs text-slate-400 italic text-center py-4">No experiences added yet. Go to the Work tab to add them.</p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {experience.map((exp) => (
-                  <div key={exp.id} className="border border-slate-150 rounded-xl p-3 flex justify-between items-center bg-slate-50/30">
+                  <div key={exp.id} className="border border-slate-200 rounded-xl p-3.5 flex justify-between items-center bg-slate-50/30">
                     <div className="truncate pr-3">
                       <h5 className="text-xs font-bold text-slate-800 truncate">{exp.role || 'Role Name'}</h5>
-                      <span className="text-[10px] text-slate-450 truncate block">{exp.company || 'Company'}</span>
+                      <span className="text-[10px] text-slate-400 truncate block">{exp.company || 'Company'}</span>
                     </div>
                     <button
                       onClick={() => handleEnhanceBullet(exp.id)}
                       disabled={improvingId === exp.id}
-                      className="px-2.5 py-1.5 bg-indigo-50 border border-indigo-150 hover:bg-indigo-100 text-indigo-700 rounded-lg text-[10.5px] font-bold shrink-0 transition flex items-center gap-1 disabled:opacity-50"
+                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[10px] font-bold shrink-0 transition flex items-center gap-1 disabled:opacity-60"
                     >
-                      {improvingId === exp.id ? (
-                        <>...</>
-                      ) : (
-                        <>
-                          <Zap className="w-3 h-3 text-indigo-600 fill-indigo-600" /> Enhance
-                        </>
-                      )}
+                      {improvingId === exp.id
+                        ? <><Loader2 className="w-3 h-3 animate-spin" /> Enhancing...</>
+                        : <><Sparkles className="w-3 h-3" /> Enhance</>
+                      }
                     </button>
                   </div>
                 ))}
@@ -270,10 +291,14 @@ export const AIAssistant: React.FC = () => {
           </div>
         )}
 
-        {/* COVER LETTER TAB */}
-        {activeTab === 'cover-letter' && (
-          <CoverLetterGenerator />
-        )}
+        {/* ── COVER LETTER TAB ── */}
+        {activeTab === 'cover-letter' && <CoverLetterGenerator />}
+
+        {/* ── INTERVIEW TAB ── */}
+        {activeTab === 'interview' && <InterviewPrep />}
+
+        {/* ── COMPANIES TAB ── */}
+        {activeTab === 'companies' && <CompanySuggestions />}
       </div>
     </div>
   );

@@ -2,30 +2,114 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom minimal scrollbar definitions */
+/* ── Google Fonts loaded via _document ── */
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+}
+
+/* ── Custom Scrollbars ── */
 ::-webkit-scrollbar {
   width: 4px;
   height: 4px;
 }
-
 ::-webkit-scrollbar-track {
   background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 99px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
-
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
 
-/* Custom print layouts for perfect server-side/client-side A4 margins */
+/* ── Range Input Styling ── */
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 9999px;
+  background: #e2e8f0;
+  outline: none;
+  cursor: pointer;
+}
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: #4f46e5;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(79, 70, 229, 0.35);
+  transition: transform 0.15s;
+}
+input[type='range']::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+/* ── Color Input ── */
+input[type='color'] {
+  -webkit-appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+input[type='color']::-webkit-color-swatch-wrapper {
+  padding: 0;
+  border-radius: 4px;
+}
+input[type='color']::-webkit-color-swatch {
+  border: none;
+  border-radius: 4px;
+}
+
+/* ── Outfit font utility ── */
+.font-outfit {
+  font-family: 'Outfit', sans-serif;
+}
+
+/* ── Micro-animations ── */
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-slide {
+  animation: fadeSlideIn 0.2s ease-out forwards;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.15); }
+  50% { box-shadow: 0 0 0 6px rgba(79, 70, 229, 0); }
+}
+.pulse-indigo {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* ── Print styles ── */
 @media print {
   body {
     background: white !important;
@@ -36,17 +120,16 @@
     print-color-adjust: exact;
   }
 
-  .print-only {
-    display: block !important;
+  @page {
+    size: A4;
+    margin: 0;
   }
 
-  /* Pixel A4 sheets forced constraints */
-  .aspect-\[1\/1\.4\] {
-    width: 100% !important;
-    max-width: 100% !important;
-    border: none !important;
-    box-shadow: none !important;
-    padding: 1.5cm !important;
-    box-sizing: border-box !important;
+  .print\:hidden {
+    display: none !important;
+  }
+
+  .print\:block {
+    display: block !important;
   }
 }
