@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Resume Builder Agent - Premium Resume Hub</title>
+    
+    <!-- Google Fonts: Outfits for headings, Inter for UI/Body, Playfair Display for classic template -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS (via CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        outfit: ['Outfit', 'sans-serif'],
+                        serif: ['Playfair Display', 'serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <!-- Alpine.js (via CDN) for reactive binding -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        /* Custom scrollbar styling for a premium glassmorphic feel */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.3);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.4);
+            border-radius: 99px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.7);
+        }
+
+        /* Pulsing background blob animations */
+        @keyframes pulse-slow {
+            0%, 100% { transform: scale(1) translate(0px, 0px); opacity: 0.3; }
+            33% { transform: scale(1.1) translate(30px, -50px); opacity: 0.45; }
+            66% { transform: scale(0.9) translate(-20px, 20px); opacity: 0.35; }
+        }
+        .animate-pulse-slow-1 {
+            animation: pulse-slow 15s infinite ease-in-out;
+        }
+        .animate-pulse-slow-2 {
+            animation: pulse-slow 18s infinite ease-in-out -5s;
+        }
+
+        /* ATS score circle transitions */
+        .circle-progress {
+            transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* PDF printable styles */
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            .resume-sheet {
+                box-shadow: none !important;
+                border: none !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: white !important;
+                color: black !important;
+                box-sizing: border-box !important;
+            }
+            @page {
+                size: A4;
+                margin: 1.5cm;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen relative overflow-x-hidden" x-data="resumeApp()">
+
+    <!-- Ambient Gradient Blobs (No-Print) -->
+    <div class="no-print absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+        <div class="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-indigo-650/10 blur-[120px] animate-pulse-slow-1"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-emerald-650/10 blur-[120px] animate-pulse-slow-2"></div>
+    </div>
+
+    <!-- MAIN DASHBOARD WRAPPER -->
+    <div class="no-print relative z-10 flex flex-col h-screen overflow-hidden">
+        
+        <!-- HEADER BAR -->
+        <header class="border-b border-slate-800 bg-slate-900/60 backdrop-blur-md px-6 py-4 flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <i data-lucide="sparkles" class="w-5 h-5 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold font-outfit bg-gradient-to-r from-white via-slate-100 to-indigo-300 bg-clip-text text-transparent">
+                        AI Resume Builder Agent
+                    </h1>
+                    <p class="text-xs text-slate-400">Transform your resume with agentic precision</p>
+                </div>
+            </div>
+
+            <!-- Export / Save actions -->
+            <div class="flex items-center gap-3">
+                <button @click="resetForm()" class="px-3 py-1.5 rounded-xl border border-slate-800 text-xs text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-2">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reset Data
+                </button>
+                <button @click="triggerPrint()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:opacity-90 active:scale-[0.98] text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition flex items-center gap-2">
+                    <i data-lucide="download" class="w-4 h-4"></i> Export PDF / Print
+                </button>
+            </div>
+        </header>
+
+        <!-- DASHBOARD BODY CONTAINER (Split Layout) -->
+        <div class="flex flex-1 overflow-hidden">
+            
+            <!-- LEFT PANEL: Active Editor & Templates (Width 28%) -->
+            <aside class="w-[28%] border-r border-slate-800 bg-slate-900/40 backdrop-blur-md flex flex-col h-full overflow-hidden">
+                <!-- Section Tabs -->
+                <div class="flex border-b border-slate-800 shrink-0 text-xs font-semibold bg-slate-900/60">
+                    <button @click="activeTab = 'general'" :class="activeTab === 'general' ? 'border-indigo-500 text-indigo-400 bg-slate-900/30' : 'border-transparent text-slate-400 hover:text-slate-200'" class="flex-1 py-3 text-center border-b-2 transition">
+                        General
+                    </button>
+                    <button @click="activeTab = 'experience'" :class="activeTab === 'experience' ? 'border-indigo-500 text-indigo-400 bg-slate-900/30' : 'border-transparent text-slate-400 hover:text-slate-200'" class="flex-1 py-3 text-center border-b-2 transition">
+                        Experience
+                    </button>
+                    <button @click="activeTab = 'education'" :class="activeTab === 'education' ? 'border-indigo-500 text-indigo-400 bg-slate-900/30' : 'border-transparent text-slate-400 hover:text-slate-200'" class="flex-1 py-3 text-center border-b-2 transition">
+                        Education
+                    </button>
+                    <button @click="activeTab = 'templates'" :class="activeTab === 'templates' ? 'border-indigo-500 text-indigo-400 bg-slate-900/30' : 'border-transparent text-slate-400 hover:text-slate-200'" class="flex-1 py-3 text-center border-b-2 transition">
+                        Styling
+                    </button>
+                </div>
+
+                <!-- Editor Scrollable Panel -->
+                <div class="flex-1 overflow-y-auto p-5 space-y-5">
+                    
+                    <!-- TAB 1: General Info -->
+                    <div x-show="activeTab === 'general'" class="space-y-4">
+                        <h2 class="text-sm font-semibold text-slate-300 border-b border-slate-800 pb-1.5 flex items-center gap-2">
+                            <i data-lucide="user" class="w-4 h-4 text-indigo-400"></i> Personal Information
+                        </h2>
+                        
+                        <div class="space-y-3.5">
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Full Name</label>
+                                <input type="text" x-model="resume.name" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 transition">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Target Professional Title</label>
+                                <input type="text" x-model="resume.title" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 transition">
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Email</label>
+                                    <input type="email" x-model="resume.email" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 transition">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Phone</label>
+                                    <input type="text" x-model="resume.phone" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 transition">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Location</label>
+                                    <input type="text" x-model="resume.location" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 transition">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Portfolio / Link</label>
+                                    <input type="text" x-model="resume.website" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 transition">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Professional Summary</label>
+                                <textarea rows="4" x-model="resume.summary" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-indigo-500 transition resize-none"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 2: Experience -->
+                    <div x-show="activeTab === 'experience'" class="space-y-4">
+                        <div class="flex justify-between items-center border-b border-slate-800 pb-1.5">
+                            <h2 class="text-sm font-semibold text-slate-300 flex items-center gap-2">
+                                <i data-lucide="briefcase" class="w-4 h-4 text-indigo-400"></i> Work Experience
+                            </h2>
+                            <button @click="addExperience()" class="px-2 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-semibold flex items-center gap-1 transition">
+                                <i data-lucide="plus" class="w-3 h-3"></i> Add
+                            </button>
+                        </div>
+
+                        <div class="space-y-4">
+                            <template x-for="(exp, index) in resume.experience" :key="index">
+                                <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 relative space-y-3">
+                                    <button @click="removeExperience(index)" class="absolute top-3 right-3 text-slate-500 hover:text-rose-450 transition">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Company</label>
+                                        <input type="text" x-model="exp.company" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 transition">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Job Role</label>
+                                        <input type="text" x-model="exp.role" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 transition">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Dates (e.g. 2022 - Present)</label>
+                                        <input type="text" x-model="exp.dates" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 transition">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Key Responsibilities / Achievements</label>
+                                        <textarea rows="3" x-model="exp.description" placeholder="Use bullet points (start each with a -)" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 transition resize-none"></textarea>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- TAB 3: Education -->
+                    <div x-show="activeTab === 'education'" class="space-y-4">
+                        <div class="flex justify-between items-center border-b border-slate-800 pb-1.5">
+                            <h2 class="text-sm font-semibold text-slate-300 flex items-center gap-2">
+                                <i data-lucide="graduation-cap" class="w-4 h-4 text-indigo-400"></i> Education
+                            </h2>
+                            <button @click="addEducation()" class="px-2 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-semibold flex items-center gap-1 transition">
+                                <i data-lucide="plus" class="w-3 h-3"></i> Add
+                            </button>
+                        </div>
+
+                        <div class="space-y-4">
+                            <template x-for="(edu, index) in resume.education" :key="index">
+                                <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 relative space-y-3">
+                                    <button @click="removeEducation(index)" class="absolute top-3 right-3 text-slate-500 hover:text-rose-450 transition">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Institution</label>
+                                        <input type="text" x-model="edu.school" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 transition">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Degree & Major</label>
+                                        <input type="text" x-model="edu.degree" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 transition">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Dates</label>
+                                        <input type="text" x-model="edu.dates" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 transition">
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- TAB 4: Styling & Templates -->
+                    <div x-show="activeTab === 'templates'" class="space-y-5">
+                        
+                        <!-- Technical Skills tags input -->
+                        <div class="space-y-3">
+                            <h2 class="text-sm font-semibold text-slate-300 border-b border-slate-800 pb-1.5 flex items-center gap-2">
+                                <i data-lucide="layers" class="w-4 h-4 text-indigo-400"></i> Technical Skills
+                            </h2>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Add Skill Tag (Hit Enter)</label>
+                                <div class="flex gap-2">
+                                    <input type="text" x-model="newSkill" @keydown.enter.prevent="addSkill()" placeholder="e.g. React" class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 transition">
+                                    <button @click="addSkill()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white transition">Add</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Tags Container -->
+                            <div class="flex flex-wrap gap-1.5 pt-1.5">
+                                <template x-for="(skill, idx) in resume.skills" :key="idx">
+                                    <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] text-slate-200 transition cursor-pointer" @click="removeSkill(idx)">
+                                        <span x-text="skill"></span>
+                                        <i data-lucide="x" class="w-3 h-3 text-slate-400 hover:text-white"></i>
+                                    </span>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Template Switcher Cards -->
+                        <div class="space-y-3 pt-2">
+                            <h2 class="text-sm font-semibold text-slate-300 border-b border-slate-800 pb-1.5 flex items-center gap-2">
+                                <i data-lucide="palette" class="w-4 h-4 text-indigo-400"></i> Select Layout Template
+                            </h2>
+                            
+                            <div class="space-y-3">
+                                <!-- Template 1: Slate Minimal -->
+                                <div @click="activeTemplate = 'minimal'" :class="activeTemplate === 'minimal' ? 'border-indigo-500 bg-indigo-950/20 shadow-md shadow-indigo-900/10' : 'border-slate-800 hover:border-slate-750 bg-slate-900/20'" class="rounded-2xl border p-4 cursor-pointer transition flex items-start gap-3">
+                                    <div class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center shrink-0">
+                                        <i data-lucide="align-left" class="w-4 h-4 text-slate-300"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-xs font-bold text-white">Slate Minimal</h3>
+                                        <p class="text-[10px] text-slate-450 mt-0.5">Classic elegance, centered typography, professional dividers.</p>
+                                    </div>
+                                </div>
+
+                                <!-- Template 2: Indigo Creative -->
+                                <div @click="activeTemplate = 'creative'" :class="activeTemplate === 'creative' ? 'border-indigo-500 bg-indigo-950/20 shadow-md shadow-indigo-900/10' : 'border-slate-800 hover:border-slate-750 bg-slate-900/20'" class="rounded-2xl border p-4 cursor-pointer transition flex items-start gap-3">
+                                    <div class="w-8 h-8 rounded-lg bg-indigo-900 flex items-center justify-center shrink-0">
+                                        <i data-lucide="layout-grid" class="w-4 h-4 text-indigo-300"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-xs font-bold text-white">Indigo Creative</h3>
+                                        <p class="text-[10px] text-slate-450 mt-0.5">Two-column asymmetric layout with deep-indigo details sidebar.</p>
+                                    </div>
+                                </div>
+
+                                <!-- Template 3: Emerald Executive -->
+                                <div @click="activeTemplate = 'executive'" :class="activeTemplate === 'executive' ? 'border-indigo-500 bg-indigo-950/20 shadow-md shadow-indigo-900/10' : 'border-slate-800 hover:border-slate-750 bg-slate-900/20'" class="rounded-2xl border p-4 cursor-pointer transition flex items-start gap-3">
+                                    <div class="w-8 h-8 rounded-lg bg-emerald-900 flex items-center justify-center shrink-0">
+                                        <i data-lucide="award" class="w-4 h-4 text-emerald-350"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-xs font-bold text-white">Emerald Executive</h3>
+                                        <p class="text-[10px] text-slate-450 mt-0.5">Cream paper, warm serif titles, clean double divider blocks.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- CENTER PANEL: Real-time Live Resume Preview (Width 44%) -->
+            <main class="w-[44%] bg-slate-950 flex flex-col items-center p-6 overflow-y-auto relative h-full">
+                <!-- Watermark indicator -->
+                <div class="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">
+                    <i data-lucide="eye" class="w-3.5 h-3.5"></i> Live A4 Page Preview
+                </div>
+
+                <!-- RESUME SHEET LAYOUT FRAME -->
+                <div class="resume-sheet w-full max-w-[700px] aspect-[1/1.4] bg-white text-slate-800 shadow-2xl rounded-sm p-10 overflow-hidden relative border border-slate-200 transition-all duration-300 flex flex-col justify-between">
+                    
+                    <!-- ============================================== -->
+                    <!-- TEMPLATE 1: SLATE MINIMAL -->
+                    <!-- ============================================== -->
+                    <div x-show="activeTemplate === 'minimal'" class="flex-1 flex flex-col justify-between">
+                        <div>
+                            <!-- Header Block -->
+                            <div class="text-center pb-5 border-b border-slate-250">
+                                <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight font-outfit uppercase" x-text="resume.name || 'Your Full Name'"></h1>
+                                <p class="text-sm font-semibold text-indigo-650 tracking-wider font-outfit mt-1 uppercase" x-text="resume.title || 'Professional Title'"></p>
+                                
+                                <div class="flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-xs text-slate-655 mt-3 font-medium">
+                                    <span class="flex items-center gap-1"><i data-lucide="mail" class="w-3 h-3 text-slate-450"></i> <span x-text="resume.email || 'email@example.com'"></span></span>
+                                    <span class="text-slate-300">•</span>
+                                    <span class="flex items-center gap-1"><i data-lucide="phone" class="w-3 h-3 text-slate-450"></i> <span x-text="resume.phone || '+1 (555) 000-0000'"></span></span>
+                                    <span class="text-slate-300">•</span>
+                                    <span class="flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3 text-slate-450"></i> <span x-text="resume.location || 'City, State'"></span></span>
+                                    <template x-if="resume.website">
+                                        <span class="flex items-center gap-x-3">
+                                            <span class="text-slate-300">•</span>
+                                            <span class="flex items-center gap-1"><i data-lucide="globe" class="w-3 h-3 text-slate-450"></i> <span x-text="resume.website"></span></span>
+                                        </span>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- Professional Summary -->
+                            <template x-if="resume.summary">
+                                <div class="mt-5">
+                                    <h3 class="text-xs font-bold text-slate-900 uppercase tracking-widest border-b border-slate-200 pb-1 mb-2 font-outfit">Professional Summary</h3>
+                                    <p class="text-[11.5px] leading-relaxed text-slate-700 text-justify" x-text="resume.summary"></p>
+                                </div>
+                            </template>
+
+                            <!-- Work Experience -->
+                            <template x-if="resume.experience && resume.experience.length > 0">
+                                <div class="mt-5">
+                                    <h3 class="text-xs font-bold text-slate-900 uppercase tracking-widest border-b border-slate-200 pb-1 mb-3.5 font-outfit">Work Experience</h3>
+                                    <div class="space-y-4">
+                                        <template x-for="(exp, idx) in resume.experience" :key="idx">
+                                            <div>
+                                                <div class="flex justify-between items-baseline mb-1">
+                                                    <h4 class="text-xs font-bold text-slate-900" x-text="exp.role || 'Job Role'"></h4>
+                                                    <span class="text-[10px] font-semibold text-slate-500 font-outfit" x-text="exp.dates || 'Date Period'"></span>
+                                                </div>
+                                                <div class="text-[11px] font-bold text-indigo-650 tracking-wide uppercase mb-1.5" x-text="exp.company || 'Company Name'"></div>
+                                                
+                                                <!-- Process bullet points -->
+                                                <ul class="list-disc pl-4 space-y-1 text-[11px] leading-relaxed text-slate-700">
+                                                    <template x-for="bullet in parseBullets(exp.description)">
+                                                        <li x-text="bullet"></li>
+                                                    </template>
+                                                </ul>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- Education -->
+                            <template x-if="resume.education && resume.education.length > 0">
+                                <div class="mt-5">
+                                    <h3 class="text-xs font-bold text-slate-900 uppercase tracking-widest border-b border-slate-200 pb-1 mb-3 font-outfit">Education</h3>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <template x-for="(edu, idx) in resume.education" :key="idx">
+                                            <div>
+                                                <div class="flex justify-between items-baseline">
+                                                    <h4 class="text-xs font-bold text-slate-900" x-text="edu.degree || 'Degree'"></h4>
+                                                    <span class="text-[9px] text-slate-500 font-semibold" x-text="edu.dates || 'Dates'"></span>
+                                                </div>
+                                                <div class="text-[10px] text-slate-600 font-semibold mt-0.5" x-text="edu.school || 'School Name'"></div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Technical Skills at the bottom -->
+                        <template x-if="resume.skills && resume.skills.length > 0">
+                            <div class="mt-5">
+                                <h3 class="text-xs font-bold text-slate-900 uppercase tracking-widest border-b border-slate-200 pb-1 mb-2 font-outfit">Skills & Expertise</h3>
+                                <div class="flex flex-wrap gap-1.5 pt-1">
+                                    <template x-for="skill in resume.skills">
+                                        <span class="text-[10.5px] font-medium text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded" x-text="skill"></span>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- ============================================== -->
+                    <!-- TEMPLATE 2: INDIGO CREATIVE (Sidebar layout) -->
+                    <!-- ============================================== -->
+                    <div x-show="activeTemplate === 'creative'" class="flex-1 flex gap-6 -m-10 min-h-[101%]">
+                        <!-- Left Sidebar Column (1/3 width, Slate background) -->
+                        <div class="w-[33%] bg-slate-900 text-white p-7 flex flex-col justify-between border-r border-slate-800">
+                            <div>
+                                <!-- Header info in sidebar -->
+                                <div class="pb-6 border-b border-slate-800">
+                                    <h1 class="text-xl font-bold font-outfit uppercase tracking-wider text-white" x-text="resume.name || 'Your Name'"></h1>
+                                    <p class="text-[11px] font-semibold text-indigo-400 tracking-widest mt-1 uppercase" x-text="resume.title || 'Professional Title'"></p>
+                                </div>
+
+                                <!-- Contact Info -->
+                                <div class="mt-6 space-y-4">
+                                    <h3 class="text-[10px] font-bold text-slate-450 uppercase tracking-widest">Contact Details</h3>
+                                    <div class="space-y-2.5 text-[10px] text-slate-300">
+                                        <div class="flex items-start gap-2">
+                                            <i data-lucide="mail" class="w-3.5 h-3.5 text-indigo-400 mt-0.5 shrink-0"></i>
+                                            <span class="break-all" x-text="resume.email || 'email@example.com'"></span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <i data-lucide="phone" class="w-3.5 h-3.5 text-indigo-400 shrink-0"></i>
+                                            <span x-text="resume.phone || '+1 (555) 000-0000'"></span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-indigo-400 shrink-0"></i>
+                                            <span x-text="resume.location || 'City, State'"></span>
+                                        </div>
+                                        <template x-if="resume.website">
+                                            <div class="flex items-center gap-2">
+                                                <i data-lucide="globe" class="w-3.5 h-3.5 text-indigo-400 shrink-0"></i>
+                                                <span class="break-all" x-text="resume.website"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+
+                                <!-- Skills Tags -->
+                                <template x-if="resume.skills && resume.skills.length > 0">
+                                    <div class="mt-8">
+                                        <h3 class="text-[10px] font-bold text-slate-450 uppercase tracking-widest mb-3">Skills</h3>
+                                        <div class="flex flex-wrap gap-1">
+                                            <template x-for="skill in resume.skills">
+                                                <span class="text-[9.5px] bg-slate-800 text-slate-200 border border-slate-700/60 px-2 py-0.5 rounded-sm" x-text="skill"></span>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <!-- Education in Sidebar -->
+                            <template x-if="resume.education && resume.education.length > 0">
+                                <div class="mt-8 border-t border-slate-800 pt-5">
+                                    <h3 class="text-[10px] font-bold text-slate-450 uppercase tracking-widest mb-3">Education</h3>
+                                    <div class="space-y-3">
+                                        <template x-for="(edu, idx) in resume.education" :key="idx">
+                                            <div>
+                                                <h4 class="text-[10.5px] font-bold text-white" x-text="edu.degree || 'Degree'"></h4>
+                                                <p class="text-[9.5px] text-slate-400 font-semibold" x-text="edu.school || 'Institution'"></p>
+                                                <span class="text-[8.5px] text-slate-500 font-semibold" x-text="edu.dates || 'Dates'"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Right Column (2/3 width, Main content) -->
+                        <div class="w-[67%] p-8 flex flex-col justify-between bg-white text-slate-800">
+                            <div>
+                                <!-- Professional Summary -->
+                                <template x-if="resume.summary">
+                                    <div>
+                                        <h3 class="text-[11px] font-bold text-indigo-650 uppercase tracking-widest border-b border-indigo-100 pb-1 mb-2 font-outfit">About Me</h3>
+                                        <p class="text-[11.5px] leading-relaxed text-slate-700 text-justify" x-text="resume.summary"></p>
+                                    </div>
+                                </template>
+
+                                <!-- Work Experience -->
+                                <template x-if="resume.experience && resume.experience.length > 0">
+                                    <div class="mt-6">
+                                        <h3 class="text-[11px] font-bold text-indigo-650 uppercase tracking-widest border-b border-indigo-100 pb-1 mb-3.5 font-outfit">Experience</h3>
+                                        <div class="space-y-4">
+                                            <template x-for="(exp, idx) in resume.experience" :key="idx">
+                                                <div class="relative pl-4 border-l border-indigo-100">
+                                                    <div class="absolute w-2 h-2 rounded-full bg-indigo-500 left-[-4.5px] top-1"></div>
+                                                    <div class="flex justify-between items-baseline mb-1">
+                                                        <h4 class="text-xs font-bold text-slate-900" x-text="exp.role || 'Job Role'"></h4>
+                                                        <span class="text-[9.5px] font-semibold text-slate-500" x-text="exp.dates || 'Date Period'"></span>
+                                                    </div>
+                                                    <div class="text-[10px] font-bold text-indigo-650 tracking-wide uppercase mb-1.5" x-text="exp.company || 'Company Name'"></div>
+                                                    
+                                                    <ul class="list-disc pl-4 space-y-1 text-[10.5px] leading-relaxed text-slate-700">
+                                                        <template x-for="bullet in parseBullets(exp.description)">
+                                                            <li x-text="bullet"></li>
+                                                        </template>
+                                                    </ul>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ============================================== -->
+                    <!-- TEMPLATE 3: EMERALD EXECUTIVE (Classic Warm) -->
+                    <!-- ============================================== -->
+                    <div x-show="activeTemplate === 'executive'" class="flex-1 flex flex-col justify-between -m-10 bg-amber-50/10 p-10">
+                        <div class="border-t-[8px] border-emerald-850 pt-3">
+                            <div>
+                                <!-- Header centered -->
+                                <div class="text-center pb-4">
+                                    <h1 class="text-3xl font-bold text-slate-900 font-serif" x-text="resume.name || 'Your Full Name'"></h1>
+                                    <p class="text-[11px] font-bold text-emerald-800 tracking-widest mt-1.5 uppercase font-sans" x-text="resume.title || 'Professional Title'"></p>
+                                    
+                                    <!-- Contact details line -->
+                                    <div class="flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-[11px] text-slate-600 mt-3 font-semibold font-serif italic">
+                                        <span x-text="resume.email || 'email@example.com'"></span>
+                                        <span>•</span>
+                                        <span x-text="resume.phone || '+1 (555) 000-0000'"></span>
+                                        <span>•</span>
+                                        <span x-text="resume.location || 'City, State'"></span>
+                                        <template x-if="resume.website">
+                                            <span class="flex items-center gap-x-3">
+                                                <span>•</span>
+                                                <span x-text="resume.website"></span>
+                                            </span>
+                                        </template>
+                                    </div>
+                                </div>
+
+                                <!-- Summary -->
+                                <template x-if="resume.summary">
+                                    <div class="mt-4">
+                                        <h3 class="text-xs font-bold text-emerald-850 uppercase tracking-widest border-b-2 border-emerald-800 pb-0.5 mb-2 font-sans">Executive Profile</h3>
+                                        <p class="text-[11.5px] leading-relaxed text-slate-850 text-justify font-serif" x-text="resume.summary"></p>
+                                    </div>
+                                </template>
+
+                                <!-- Work Experience -->
+                                <template x-if="resume.experience && resume.experience.length > 0">
+                                    <div class="mt-5">
+                                        <h3 class="text-xs font-bold text-emerald-850 uppercase tracking-widest border-b-2 border-emerald-800 pb-0.5 mb-3 font-sans">Professional Work Experience</h3>
+                                        <div class="space-y-4">
+                                            <template x-for="(exp, idx) in resume.experience" :key="idx">
+                                                <div>
+                                                    <div class="flex justify-between items-baseline mb-1">
+                                                        <h4 class="text-xs font-bold text-slate-900 font-serif" x-text="exp.role || 'Job Role'"></h4>
+                                                        <span class="text-[10px] font-semibold text-slate-500 font-sans uppercase" x-text="exp.dates || 'Date Period'"></span>
+                                                    </div>
+                                                    <div class="text-[10.5px] font-semibold text-emerald-800 italic font-serif mb-1" x-text="exp.company || 'Company Name'"></div>
+                                                    
+                                                    <ul class="list-disc pl-4 space-y-1 text-[11px] leading-relaxed text-slate-800 font-serif">
+                                                        <template x-for="bullet in parseBullets(exp.description)">
+                                                            <li x-text="bullet"></li>
+                                                        </template>
+                                                    </ul>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                <!-- Education -->
+                                <template x-if="resume.education && resume.education.length > 0">
+                                    <div class="mt-5">
+                                        <h3 class="text-xs font-bold text-emerald-850 uppercase tracking-widest border-b-2 border-emerald-800 pb-0.5 mb-2.5 font-sans">Academic Credentials</h3>
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <template x-for="(edu, idx) in resume.education" :key="idx">
+                                                <div>
+                                                    <div class="flex justify-between items-baseline">
+                                                        <h4 class="text-xs font-bold text-slate-900 font-serif" x-text="edu.degree || 'Degree'"></h4>
+                                                        <span class="text-[9px] text-slate-500 font-semibold font-sans" x-text="edu.dates || 'Dates'"></span>
+                                                    </div>
+                                                    <div class="text-[10px] text-slate-700 italic font-serif mt-0.5" x-text="edu.school || 'School Name'"></div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Technical Skills at the bottom -->
+                        <template x-if="resume.skills && resume.skills.length > 0">
+                            <div class="mt-5 border-t border-emerald-100 pt-3">
+                                <h3 class="text-xs font-bold text-emerald-850 uppercase tracking-widest mb-2 font-sans">Skills Summary</h3>
+                                <div class="flex flex-wrap gap-1.5 pt-0.5">
+                                    <template x-for="skill in resume.skills">
+                                        <span class="text-[10px] font-semibold text-emerald-900 bg-emerald-50 border border-emerald-200/50 px-2 py-0.5 rounded-sm font-sans" x-text="skill"></span>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                </div>
+            </main>
+
+            <!-- RIGHT PANEL: AI Tools, Assistant & Suggestions (Width 28%) -->
+            <aside class="w-[28%] border-l border-slate-800 bg-slate-900/40 backdrop-blur-md flex flex-col h-full overflow-hidden">
+                
+                <!-- ATS SCORE & SUGGESTIONS ACCORDION -->
+                <div class="p-5 border-b border-slate-800 shrink-0 space-y-4">
+                    
+                    <!-- Dynamic ATS Circle & Info -->
+                    <div class="flex items-center gap-4 bg-slate-950/40 border border-slate-850 rounded-2xl p-4">
+                        <!-- Custom SVG circular progress bar -->
+                        <div class="relative w-16 h-16 shrink-0 flex items-center justify-center">
+                            <svg class="w-full h-full transform -rotate-90">
+                                <circle cx="32" cy="32" r="28" class="stroke-slate-800" stroke-width="5" fill="transparent"/>
+                                <circle cx="32" cy="32" r="28" class="circle-progress stroke-indigo-500" stroke-width="5" fill="transparent"
+                                        :stroke-dasharray="2 * Math.PI * 28"
+                                        :stroke-dashoffset="(1 - (calculateAtsScore() / 100)) * (2 * Math.PI * 28)"/>
+                            </svg>
+                            <span class="absolute text-sm font-bold font-outfit" x-text="calculateAtsScore() + '%'"></span>
+                        </div>
+                        <div>
+                            <h2 class="text-xs font-bold font-outfit text-white uppercase tracking-wider">ATS Score Analyzer</h2>
+                            <p class="text-[10px] text-slate-400 mt-1" x-text="getAtsFeedback()"></p>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Suggestions List -->
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Actionable Tips</h3>
+                            <span class="text-[9px] bg-indigo-550/20 text-indigo-400 px-1.5 py-0.5 rounded font-semibold" x-text="suggestions.length + ' Tips'"></span>
+                        </div>
+                        
+                        <div class="max-h-[140px] overflow-y-auto space-y-2">
+                            <template x-for="(sug, index) in suggestions" :key="index">
+                                <div class="p-2.5 rounded-xl border border-slate-850 bg-slate-950/20 flex justify-between items-start gap-2 group hover:border-slate-800 transition">
+                                    <p class="text-[10px] text-slate-300 leading-relaxed" x-text="sug.tip"></p>
+                                    <button @click="applySuggestion(sug)" class="shrink-0 text-[9px] font-bold text-indigo-400 hover:text-indigo-300 bg-slate-900 group-hover:bg-slate-850 px-2 py-1 rounded border border-slate-800 transition">
+                                        Apply
+                                    </button>
+                                </div>
+                            </template>
+                            <template x-if="suggestions.length === 0">
+                                <div class="p-3 text-center text-[10px] text-slate-550 italic bg-slate-950/10 border border-dashed border-slate-850 rounded-xl">
+                                    Excellent! Your resume is highly optimized!
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI CAREER ASSISTANT CHAT ENGINE -->
+                <div class="flex-1 flex flex-col overflow-hidden">
+                    <div class="px-5 py-3 border-b border-slate-800 bg-slate-900/20 flex items-center justify-between shrink-0">
+                        <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            AI Career Assistant Active
+                        </span>
+                        <span class="text-[9px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-semibold uppercase font-outfit">GPT-4 Turbo</span>
+                    </div>
+
+                    <!-- Chat Feed -->
+                    <div class="flex-1 overflow-y-auto p-4 space-y-4" id="chat-feed">
+                        <template x-for="(msg, index) in chatMessages" :key="index">
+                            <div class="flex flex-col space-y-1.5" :class="msg.sender === 'user' ? 'items-end' : 'items-start'">
+                                <div class="max-w-[85%] rounded-2xl px-4 py-3 text-xs leading-relaxed"
+                                     :class="msg.sender === 'user' ? 'bg-indigo-650 text-white rounded-tr-none' : 'bg-slate-900 text-slate-200 border border-slate-800 rounded-tl-none'">
+                                    <!-- Render message -->
+                                    <div class="whitespace-pre-line" x-text="msg.text"></div>
+
+                                    <!-- Render special suggestion widgets inside AI messages if present -->
+                                    <template x-if="msg.actionSuggestion">
+                                        <div class="mt-3 pt-3 border-t border-slate-800 flex flex-col gap-2">
+                                            <div class="p-2 rounded bg-slate-950/60 text-[10px] border border-slate-850 text-slate-300">
+                                                <strong>Proposed Update:</strong>
+                                                <div class="mt-1 italic" x-text="truncateText(msg.actionSuggestion.value, 80)"></div>
+                                            </div>
+                                            <button @click="applyAiAction(msg.actionSuggestion)" class="w-full py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-[10px] text-white font-bold transition flex items-center justify-center gap-1">
+                                                <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Apply Changes Instantly
+                                            </button>
+                                        </div>
+                                    </template>
+                                </div>
+                                <span class="text-[9px] text-slate-500 font-semibold px-2" x-text="msg.time"></span>
+                            </div>
+                        </template>
+
+                        <!-- Typing Indicator -->
+                        <div x-show="aiTyping" class="flex flex-col items-start space-y-1.5">
+                            <div class="bg-slate-900 text-slate-300 border border-slate-800 rounded-2xl rounded-tl-none px-4 py-3 text-xs flex items-center gap-2">
+                                <span class="text-[10px] italic">AI Agent is editing...</span>
+                                <div class="flex gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" style="animation-delay: 0ms"></span>
+                                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" style="animation-delay: 150ms"></span>
+                                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" style="animation-delay: 300ms"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chat Action recommendations -->
+                    <div class="px-4 py-2 border-t border-slate-850 bg-slate-950/20 shrink-0">
+                        <div class="flex flex-wrap gap-1.5">
+                            <button @click="sendPredefined('Optimize for FAANG')" class="text-[9.5px] bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-750 px-2 py-1 rounded-md transition font-medium">
+                                🚀 Optimize for Google
+                            </button>
+                            <button @click="sendPredefined('Quantify bullet points')" class="text-[9.5px] bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-750 px-2 py-1 rounded-md transition font-medium">
+                                📊 Quantify Bullets
+                            </button>
+                            <button @click="sendPredefined('Write a stronger profile summary')" class="text-[9.5px] bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-750 px-2 py-1 rounded-md transition font-medium">
+                                ✍️ Write Killer Summary
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Chat Input -->
+                    <div class="p-3 border-t border-slate-800 shrink-0 bg-slate-900/60">
+                        <div class="flex gap-2">
+                            <textarea rows="1" x-model="chatInput" @keydown.enter.prevent="sendChat()" placeholder="Ask AI to optimize, write or improve..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 transition resize-none"></textarea>
+                            <button @click="sendChat()" class="w-10 h-10 shrink-0 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center active:scale-95 transition">
+                                <i data-lucide="send" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- PRINT ONLY RENDER (For flawless PDF layout) -->
+    <!-- ============================================== -->
+    <div class="print-only hidden w-full">
+        <!-- Render current active layout without wrapper styling -->
+        <div class="w-full bg-white text-slate-800">
+            
+            <!-- Minimal Template Print -->
+            <div x-show="activeTemplate === 'minimal'" class="w-full">
+                <!-- Header -->
+                <div class="text-center pb-5 border-b border-slate-300">
+                    <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight uppercase" x-text="resume.name"></h1>
+                    <p class="text-sm font-semibold text-indigo-650 tracking-wider mt-1 uppercase" x-text="resume.title"></p>
+                    
+                    <div class="flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-xs text-slate-600 mt-3 font-medium">
+                        <span x-text="resume.email"></span>
+                        <span>•</span>
+                        <span x-text="resume.phone"></span>
+                        <span>•</span>
+                        <span x-text="resume.location"></span>
+                        <template x-if="resume.website">
+                            <span class="flex items-center gap-x-3">
+                                <span>•</span>
+                                <span x-text="resume.website"></span>
+                            </span>
+                        </template>
+                    </div>
+                </div>
+                <!-- Summary -->
+                <template x-if="resume.summary">
+                    <div class="mt-5">
+                        <h3 class="text-xs font-bold text-slate-900 uppercase tracking-widest border-b border-slate-200 pb-1 mb-2">Professional Summary</h3>
+                        <p class="text-[11.5px] leading-relaxed text-slate-700 text-justify" x-text="resume.summary"></p>
+                    </div>
+                </template>
+                <!-- Experience -->
+                <template x-if="resume.experience && resume.experience.length > 0">
+                    <div class="mt-5">
+                        <h3 class="text-xs font-bold text-slate-900 uppercase tracking-widest border-b border-slate-200 pb-1 mb-3">Work Experience</h3>
+                        <div class="space-y-4">
+                            <template x-for="(exp, idx) in resume.experience" :key="idx">
+                                <div>
+                                    <div class="flex justify-between items-baseline mb-1">
+                                        <h4 class="text-xs font-bold text-slate-900" x-text="exp.role"></h4>
+                                        <span class="text-[10px] font-semibold text-slate-500" x-text="exp.dates"></span>
+                                    </div>
+                                    <div class="text-[11px] font-bold text-indigo-650 tracking-wide uppercase mb-1.5" x-text="exp.company"></div>
+                                    <ul class="list-disc pl-4 space-y-1 text-[11px] leading-relaxed text-slate-700">
+                                        <template x-for="bullet in parseBullets(exp.description)">
+                                            <li x-text="bullet"></li>
+                                        </template>
+                                    </ul>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+                <!-- Education -->
+                <template x-if="resume.education && resume.education.length > 0">
+                    <div class="mt-5">
+                        <h3 class="text-xs font-bold text-slate-900 uppercase tracking-widest border-b border-slate-200 pb-1 mb-3">Education</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <template x-for="(edu, idx) in resume.education" :key="idx">
+                                <div>
+                                    <div class="flex justify-between items-baseline">
+                                        <h4 class="text-xs font-bold text-slate-900" x-text="edu.degree"></h4>
+                                        <span class="text-[9px] text-slate-500 font-semibold" x-text="edu.dates"></span>
+                                    </div>
+                                    <div class="text-[10px] text-slate-600 font-semibold mt-0.5" x-text="edu.school"></div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+                <!-- Skills -->
+                <template x-if="resume.skills && resume.skills.length > 0">
+                    <div class="mt-5">
+                        <h3 class="text-xs font-bold text-slate-900 uppercase tracking-widest border-b border-slate-200 pb-1 mb-2">Skills & Expertise</h3>
+                        <div class="flex flex-wrap gap-1.5 pt-1">
+                            <template x-for="skill in resume.skills">
+                                <span class="text-[10.5px] font-medium text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded" x-text="skill"></span>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Creative Template Print -->
+            <div x-show="activeTemplate === 'creative'" class="flex gap-6 min-h-[29.7cm]">
+                <div class="w-[33%] bg-slate-900 text-white p-7 flex flex-col justify-between border-r border-slate-800">
+                    <div>
+                        <div class="pb-6 border-b border-slate-800">
+                            <h1 class="text-xl font-bold uppercase tracking-wider text-white" x-text="resume.name"></h1>
+                            <p class="text-[11px] font-semibold text-indigo-400 tracking-widest mt-1 uppercase" x-text="resume.title"></p>
+                        </div>
+                        <div class="mt-6 space-y-4">
+                            <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Contact Details</h3>
+                            <div class="space-y-2.5 text-[10px] text-slate-350">
+                                <p x-text="resume.email"></p>
+                                <p x-text="resume.phone"></p>
+                                <p x-text="resume.location"></p>
+                                <p x-text="resume.website"></p>
+                            </div>
+                        </div>
+                        <template x-if="resume.skills && resume.skills.length > 0">
+                            <div class="mt-8">
+                                <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Skills</h3>
+                                <div class="flex flex-wrap gap-1">
+                                    <template x-for="skill in resume.skills">
+                                        <span class="text-[9.5px] bg-slate-800 text-slate-200 border border-slate-750 px-2 py-0.5 rounded-sm" x-text="skill"></span>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    <template x-if="resume.education && resume.education.length > 0">
+                        <div class="mt-8 border-t border-slate-800 pt-5">
+                            <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Education</h3>
+                            <div class="space-y-3">
+                                <template x-for="(edu, idx) in resume.education" :key="idx">
+                                    <div>
+                                        <h4 class="text-[10.5px] font-bold text-white" x-text="edu.degree"></h4>
+                                        <p class="text-[9.5px] text-slate-450 font-semibold" x-text="edu.school"></p>
+                                        <span class="text-[8.5px] text-slate-500 font-semibold" x-text="edu.dates"></span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+                <div class="w-[67%] p-8 bg-white text-slate-850">
+                    <template x-if="resume.summary">
+                        <div>
+                            <h3 class="text-[11px] font-bold text-indigo-650 uppercase tracking-widest border-b border-indigo-100 pb-1 mb-2">About Me</h3>
+                            <p class="text-[11.5px] leading-relaxed text-slate-700 text-justify" x-text="resume.summary"></p>
+                        </div>
+                    </template>
+                    <template x-if="resume.experience && resume.experience.length > 0">
+                        <div class="mt-6">
+                            <h3 class="text-[11px] font-bold text-indigo-650 uppercase tracking-widest border-b border-indigo-100 pb-1 mb-3.5">Experience</h3>
+                            <div class="space-y-4">
+                                <template x-for="(exp, idx) in resume.experience" :key="idx">
+                                    <div class="relative pl-4 border-l border-indigo-100">
+                                        <div class="absolute w-2 h-2 rounded-full bg-indigo-500 left-[-4.5px] top-1"></div>
+                                        <div class="flex justify-between items-baseline mb-1">
+                                            <h4 class="text-xs font-bold text-slate-900" x-text="exp.role"></h4>
+                                            <span class="text-[9.5px] font-semibold text-slate-500" x-text="exp.dates"></span>
+                                        </div>
+                                        <div class="text-[10px] font-bold text-indigo-650 tracking-wide uppercase mb-1.5" x-text="exp.company"></div>
+                                        <ul class="list-disc pl-4 space-y-1 text-[10.5px] leading-relaxed text-slate-700">
+                                            <template x-for="bullet in parseBullets(exp.description)">
+                                                <li x-text="bullet"></li>
+                                            </template>
+                                        </ul>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Executive Template Print -->
+            <div x-show="activeTemplate === 'executive'" class="w-full bg-white p-6">
+                <div class="border-t-[8px] border-emerald-850 pt-3">
+                    <div class="text-center pb-4">
+                        <h1 class="text-3xl font-bold text-slate-900 font-serif" x-text="resume.name"></h1>
+                        <p class="text-[11px] font-bold text-emerald-800 tracking-widest mt-1.5 uppercase font-sans" x-text="resume.title"></p>
+                        <div class="flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-[11px] text-slate-600 mt-3 font-semibold font-serif italic">
+                            <span x-text="resume.email"></span>
+                            <span>•</span>
+                            <span x-text="resume.phone"></span>
+                            <span>•</span>
+                            <span x-text="resume.location"></span>
+                            <template x-if="resume.website">
+                                <span x-text="resume.website"></span>
+                            </template>
+                        </div>
+                    </div>
+                    <template x-if="resume.summary">
+                        <div class="mt-4">
+                            <h3 class="text-xs font-bold text-emerald-850 uppercase tracking-widest border-b-2 border-emerald-800 pb-0.5 mb-2">Executive Profile</h3>
+                            <p class="text-[11.5px] leading-relaxed text-slate-850 text-justify font-serif" x-text="resume.summary"></p>
+                        </div>
+                    </template>
+                    <template x-if="resume.experience && resume.experience.length > 0">
+                        <div class="mt-5">
+                            <h3 class="text-xs font-bold text-emerald-850 uppercase tracking-widest border-b-2 border-emerald-800 pb-0.5 mb-3">Professional Work Experience</h3>
+                            <div class="space-y-4">
+                                <template x-for="(exp, idx) in resume.experience" :key="idx">
+                                    <div>
+                                        <div class="flex justify-between items-baseline mb-1">
+                                            <h4 class="text-xs font-bold text-slate-900 font-serif" x-text="exp.role"></h4>
+                                            <span class="text-[10px] font-semibold text-slate-500 font-sans uppercase" x-text="exp.dates"></span>
+                                        </div>
+                                        <div class="text-[10.5px] font-semibold text-emerald-800 italic font-serif mb-1" x-text="exp.company"></div>
+                                        <ul class="list-disc pl-4 space-y-1 text-[11px] leading-relaxed text-slate-800 font-serif">
+                                            <template x-for="bullet in parseBullets(exp.description)">
+                                                <li x-text="bullet"></li>
+                                            </template>
+                                        </ul>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                    <template x-if="resume.education && resume.education.length > 0">
+                        <div class="mt-5">
+                            <h3 class="text-xs font-bold text-emerald-850 uppercase tracking-widest border-b-2 border-emerald-800 pb-0.5 mb-2.5">Academic Credentials</h3>
+                            <div class="grid grid-cols-2 gap-4">
+                                <template x-for="(edu, idx) in resume.education" :key="idx">
+                                    <div>
+                                        <div class="flex justify-between items-baseline">
+                                            <h4 class="text-xs font-bold text-slate-900 font-serif" x-text="edu.degree"></h4>
+                                            <span class="text-[9px] text-slate-500 font-semibold font-sans" x-text="edu.dates"></span>
+                                        </div>
+                                        <div class="text-[10px] text-slate-700 italic font-serif mt-0.5" x-text="edu.school"></div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                    <template x-if="resume.skills && resume.skills.length > 0">
+                        <div class="mt-5 border-t border-emerald-100 pt-3">
+                            <h3 class="text-xs font-bold text-emerald-850 uppercase tracking-widest mb-2">Skills Summary</h3>
+                            <div class="flex flex-wrap gap-1.5 pt-0.5">
+                                <template x-for="skill in resume.skills">
+                                    <span class="text-[10px] font-semibold text-emerald-900 bg-emerald-50 border border-emerald-200/50 px-2 py-0.5 rounded-sm" x-text="skill"></span>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTROLLER ENGINE -->
+    <script>
+        function resumeApp() {
+            // Highly robust, realistic default resume model - absolutely no placeholders!
+            const defaultResume = {
+                name: "Shruti Amipara",
+                title: "Senior Software Engineer",
+                email: "shruti.amipara@example.com",
+                phone: "+1 (555) 019-2834",
+                location: "San Francisco, CA",
+                website: "github.com/shrutiamipara",
+                summary: "Innovative and detail-oriented Senior Software Engineer with 6+ years of experience designing, building, and optimizing scalable cloud-based web applications. Expert in React, TypeScript, Node.js, and modern distributed systems, with a proven track record of reducing system latencies, upgrading software architecture, and leading cross-functional engineering squads.",
+                experience: [
+                    {
+                        company: "TechNova Solutions",
+                        role: "Senior Software Engineer",
+                        dates: "2022 - Present",
+                        description: "- Led migration of a legacy monolithic portal to a modern microservices framework, boosting system scalability by 42%\n- Engineered a real-time analytics stream dashboard using React, Tailwind CSS, and WebSockets, cutting load times by 320ms\n- Mentored 6 mid-level engineers, establishing clean code patterns and reducing post-release production bugs by 18%"
+                    },
+                    {
+                        company: "Innovate Labs",
+                        role: "Software Engineer",
+                        dates: "2020 - 2022",
+                        description: "- Engineered 15+ highly responsive, modular React front-end components, driving a 14% increment in mobile user signups\n- Streamlined CI/CD deployment routines, decreasing Webpack bundle sizes by 22% and automating Docker image builds\n- Partnered with UI/UX engineers to craft accessible interfaces complying 100% with WCAG AA accessibility standards"
+                    }
+                ],
+                education: [
+                    {
+                        school: "Stanford University",
+                        degree: "M.S. in Computer Science",
+                        dates: "2018 - 2020"
+                    },
+                    {
+                        school: "University of California, Berkeley",
+                        degree: "B.S. in Software Engineering",
+                        dates: "2014 - 2018"
+                    }
+                ],
+                skills: ["React", "JavaScript", "TypeScript", "Node.js", "Python", "Tailwind CSS", "AWS", "Docker", "System Design", "GraphQL"]
+            };
+
+            return {
+                activeTab: 'general',
+                activeTemplate: 'creative',
+                resume: JSON.parse(JSON.stringify(defaultResume)),
+                newSkill: '',
+                chatInput: '',
+                aiTyping: false,
+                chatMessages: [
+                    {
+                        sender: 'assistant',
+                        text: "Welcome, Shruti! I am your AI Career Assistant. I have analyzed your resume against the industry standards for Senior Software Engineer roles.\n\nYour resume score is currently at 92%, which is excellent. I've highlighted some quick optimizations and custom suggestions in the panels above. What would you like to achieve today?",
+                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    }
+                ],
+                
+                // Track if special enhancements have been applied to boost ATS score
+                suggestionsAppliedCount: 0,
+
+                // Initialize Lucide icons on boot
+                init() {
+                    this.$nextTick(() => {
+                        lucide.createIcons();
+                    });
+                },
+
+                // Dynamic ATS Score Calculator based on form contents
+                calculateAtsScore() {
+                    let score = 30; // base score
+
+                    if (this.resume.name && this.resume.title) score += 10;
+                    if (this.resume.email && this.resume.phone && this.resume.location) score += 10;
+                    if (this.resume.summary && this.resume.summary.length > 50) score += 15;
+                    
+                    // Score work experience details
+                    if (this.resume.experience.length >= 2) {
+                        score += 15;
+                        // check if description has bullets
+                        let hasBullets = this.resume.experience.some(e => e.description && e.description.includes('-'));
+                        if (hasBullets) score += 5;
+                    } else if (this.resume.experience.length > 0) {
+                        score += 8;
+                    }
+
+                    // Score education
+                    if (this.resume.education.length > 0) score += 10;
+                    
+                    // Score skills
+                    if (this.resume.skills.length >= 5) {
+                        score += 5;
+                    }
+
+                    // Boost with applied suggestions
+                    score += this.suggestionsAppliedCount * 5;
+
+                    return Math.min(score, 100);
+                },
+
+                // Dynamic Feedback based on ATS Score
+                getAtsFeedback() {
+                    const score = this.calculateAtsScore();
+                    if (score < 60) return "Add a detailed professional summary, list at least 5 tech skills, and add 2 work experiences to build an ATS foundation.";
+                    if (score < 80) return "Good progress! Expand your experience descriptions with actionable bullet points starting with hyphens (-).";
+                    if (score < 95) return "Highly competitive. Let's quantify achievements with metrics (%, $, time) to rank in top 5% of candidate matches.";
+                    return "Perfect layout optimization! Formatted cleanly for ATS parsers, optimized keyword load, and bullet ratios.";
+                },
+
+                // Suggestions Panel items calculated dynamically
+                get suggestions() {
+                    const list = [];
+                    
+                    // Suggestion 1: Check skills count
+                    if (this.resume.skills.length < 12) {
+                        list.push({
+                            id: 'add_skills',
+                            tip: "Boost search matching by adding core keywords: 'Kubernetes', 'CI/CD' and 'GraphQL'.",
+                            apply: () => {
+                                const newSkills = ['Kubernetes', 'CI/CD', 'GraphQL'];
+                                newSkills.forEach(s => {
+                                    if (!this.resume.skills.includes(s)) {
+                                        this.resume.skills.push(s);
+                                    }
+                                });
+                                this.suggestionsAppliedCount++;
+                            }
+                        });
+                    }
+
+                    // Suggestion 2: Summary check
+                    if (this.resume.summary && !this.resume.summary.includes('orchestrating')) {
+                        list.push({
+                            id: 'enhance_summary',
+                            tip: "Elevate your summary statement with strategic high-impact action verbs: 'orchestrating distributed applications'.",
+                            apply: () => {
+                                this.resume.summary = this.resume.summary.replace(
+                                    "designing, building, and optimizing",
+                                    "orchestrating distributed applications, designing robust systems, and optimizing"
+                                );
+                                this.suggestionsAppliedCount++;
+                            }
+                        });
+                    }
+
+                    // Suggestion 3: Quantified experience bullet
+                    if (this.resume.experience.length > 0 && !this.resume.experience[0].description.includes("24%")) {
+                        list.push({
+                            id: 'quantify_exp',
+                            tip: "Add impact metrics to your TechNova experience: highlight 'reducing infrastructure spend by 24%'.",
+                            apply: () => {
+                                this.resume.experience[0].description = this.resume.experience[0].description.replace(
+                                    "migration of a legacy monolithic portal to a modern microservices framework",
+                                    "migration of a legacy monolithic portal to microservices, reducing infrastructure spend by 24% and boosting scalability"
+                                );
+                                this.suggestionsAppliedCount++;
+                            }
+                        });
+                    }
+
+                    return list;
+                },
+
+                // Apply suggestion from the side checklist
+                applySuggestion(sug) {
+                    sug.apply();
+                    this.addChatMessage('assistant', `Applied suggestion: ${sug.tip} Your resume data and ATS score have updated!`);
+                    this.initIcons();
+                },
+
+                // Parse text areas with bullet lines into clean Javascript arrays
+                parseBullets(text) {
+                    if (!text) return [];
+                    return text.split('\n')
+                        .map(line => line.trim())
+                        .filter(line => line.startsWith('-'))
+                        .map(line => line.substring(1).trim());
+                },
+
+                // Form control operations
+                addExperience() {
+                    this.resume.experience.push({
+                        company: '',
+                        role: '',
+                        dates: '',
+                        description: '- Entered key responsibility'
+                    });
+                    this.initIcons();
+                },
+
+                removeExperience(idx) {
+                    this.resume.experience.splice(idx, 1);
+                },
+
+                addEducation() {
+                    this.resume.education.push({
+                        school: '',
+                        degree: '',
+                        dates: ''
+                    });
+                    this.initIcons();
+                },
+
+                removeEducation(idx) {
+                    this.resume.education.splice(idx, 1);
+                },
+
+                addSkill() {
+                    const skill = this.newSkill.trim();
+                    if (skill && !this.resume.skills.includes(skill)) {
+                        this.resume.skills.push(skill);
+                        this.newSkill = '';
+                        this.initIcons();
+                    }
+                },
+
+                removeSkill(idx) {
+                    this.resume.skills.splice(idx, 1);
+                },
+
+                resetForm() {
+                    this.resume = JSON.parse(JSON.stringify(defaultResume));
+                    this.suggestionsAppliedCount = 0;
+                    this.addChatMessage('assistant', "Form data has been reset to the highly optimized developer draft template.");
+                },
+
+                // PDF Export trigger
+                triggerPrint() {
+                    window.print();
+                },
+
+                // Chat Engine helper to append messages
+                addChatMessage(sender, text, actionSuggestion = null) {
+                    this.chatMessages.push({
+                        sender: sender,
+                        text: text,
+                        actionSuggestion: actionSuggestion,
+                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    });
+                    
+                    // Auto-scroll chat box down
+                    this.$nextTick(() => {
+                        const chatFeed = document.getElementById('chat-feed');
+                        if (chatFeed) {
+                            chatFeed.scrollTop = chatFeed.scrollHeight;
+                        }
+                    });
+                },
+
+                // Typing trigger helper to refresh UI icons inside dynamic elements
+                initIcons() {
+                    this.$nextTick(() => {
+                        lucide.createIcons();
+                    });
+                },
+
+                truncateText(str, n) {
+                    return (str.length > n) ? str.substr(0, n-1) + '...' : str;
+                },
+
+                // Send a predefined action
+                sendPredefined(theme) {
+                    this.chatInput = `Execute instruction: ${theme}`;
+                    this.sendChat();
+                },
+
+                // Process input message and simulate smart agent response
+                sendChat() {
+                    const text = this.chatInput.trim();
+                    if (!text) return;
+
+                    this.addChatMessage('user', text);
+                    this.chatInput = '';
+                    this.aiTyping = true;
+
+                    // Scroll down
+                    this.$nextTick(() => {
+                        const chatFeed = document.getElementById('chat-feed');
+                        if (chatFeed) chatFeed.scrollTop = chatFeed.scrollHeight;
+                    });
+
+                    // AI streaming simulation
+                    setTimeout(() => {
+                        this.aiTyping = false;
+                        let replyText = "";
+                        let action = null;
+
+                        if (text.toLowerCase().includes('google') || text.toLowerCase().includes('faang')) {
+                            replyText = "Analyzing Senior SWE standards at Google...\n\nGoogle highly values technical leadership, cloud scalability metrics, and robust testing standards. I've drafted an elite, quantified version of your professional summary block to specifically align with Google's SRE/SWE rubrics.";
+                            action = {
+                                type: 'summary',
+                                label: 'Inject Google-Optimized Summary',
+                                value: "Elite and results-driven Senior Software Engineer with 6+ years of specialized experience architecting high-throughput microservices, orchestrating cloud-native distributed environments, and optimizing high-performance frontend interfaces. Track record of driving 42% scalability gains and decreasing user core latencies by 320ms for FAANG-scale products."
+                            };
+                        } else if (text.toLowerCase().includes('quantify') || text.toLowerCase().includes('bullet') || text.toLowerCase().includes('number')) {
+                            replyText = "Quantifying technical work experiences...\n\nRecruiters scan for quantitative outcomes instead of lists of tasks. I have upgraded your first experience bullet points (TechNova Solutions) with verified, high-impact numbers representing performance optimizations and system efficiencies.";
+                            action = {
+                                type: 'experience_0',
+                                label: 'Inject Quantitative Bullet Points',
+                                value: "- Migrated 24 legacy monolithic services to an event-driven AWS microservices tier, scaling requests/sec capability by 42% and trimming costs by 24%\n- Engineered a real-time tracking panel with React WebSockets, minimizing telemetry load times by 320ms (a 35% performance enhancement)\n- Governed architectural reviews and standardized unit testing rules, decreasing product regression bugs by 18% in production environments"
+                            };
+                        } else if (text.toLowerCase().includes('summary') || text.toLowerCase().includes('profile')) {
+                            replyText = "Crafting a punchier professional profile...\n\nYour summary should immediately state your years of experience, core technical stack, and a major career achievement. Here is an optimized summary statement ready for your resume:";
+                            action = {
+                                type: 'summary',
+                                label: 'Inject Strategic Executive Summary',
+                                value: "Distinguished Senior Software Engineer with 6+ years of expertise designing and shipping enterprise SaaS platforms. Advanced specialist in React, TypeScript, Node.js, and serverless architectures. Pioneer of scalable system practices with a verified history of boosting platform performance by 35% and automating development pipelines."
+                            };
+                        } else {
+                            replyText = `Understood. I have evaluated your custom prompt: "${text}".\n\nTo align with that objective, I highly suggest: \n1. Reviewing your technical skill cloud to add trending keywords.\n2. Polishing your job bullets to show direct organizational impact.\n3. Selecting a professional template design (like Slate Minimal) for cleaner scanning layouts.`;
+                        }
+
+                        this.addChatMessage('assistant', replyText, action);
+                        this.initIcons();
+                    }, 1200);
+                },
+
+                // Apply dynamic action generated inside chat bubble
+                applyAiAction(action) {
+                    if (action.type === 'summary') {
+                        this.resume.summary = action.value;
+                    } else if (action.type === 'experience_0') {
+                        if (this.resume.experience.length > 0) {
+                            this.resume.experience[0].description = action.value;
+                        }
+                    }
+                    this.suggestionsAppliedCount += 2; // boost score
+                    this.addChatMessage('assistant', `Awesome! I have updated your resume with the optimized text block. The changes are rendered in the live preview and your ATS score is updated!`);
+                    this.initIcons();
+                }
+            };
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  name         String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  resumes      Resume[]
+  coverLetters CoverLetter[]
+  portfolio    Portfolio?
+}
+
+model Resume {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title          String   // e.g., "Google SDE Version", "Startup Fullstack Version"
+  version        Int      @default(1)
+  
+  // Structured Resume JSON Data
+  personalInfo   Json     // { name, email, phone, location, website, summary }
+  skills         Json     // string[]
+  experience     Json     // Array of { company, role, dates, description }
+  projects       Json     // Array of { name, description, role, technologies, link }
+  education      Json     // Array of { school, degree, dates, gpa }
+  certifications Json     // Array of { name, issuer, date }
+  achievements   Json     // string[]
+  languages      Json     // string[]
+  
+  // Customization & ATS scoring
+  designConfig   Json     // { font, primaryColor, spacing, layoutOrder }
+  atsScore       Int?     @default(0)
+  atsAnalysis    Json?    // Detailed analysis, keyword gaps, issues
+  
+  isPublished    Boolean  @default(false)
+  slug           String?  @unique // For public resume link
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model CoverLetter {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  company   String
+  role      String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+model Portfolio {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slug        String   @unique
+  theme       String   @default("minimal")
+  sections    Json     // { showProjects, showExperience, customHeroText }
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
